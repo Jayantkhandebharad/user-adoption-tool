@@ -1,0 +1,32 @@
+name: Feature request
+description: A new capability or a change to existing behaviour.
+labels: ["feature", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and who has this problem? Describe the need before the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How you imagine it working. Mock-ups welcome.
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround
+      description: What you do today instead, if anything.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [SDK, Studio, Backend / API, Self-hosting / Docker, Builder extension, Docs, Not sure]
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd like to work on this myself

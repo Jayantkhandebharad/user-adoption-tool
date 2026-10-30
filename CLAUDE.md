@@ -16,9 +16,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-The project is in the planning phase: there is no code, build tooling or tests yet. The plan,
-decisions and milestones (M0–M5) are in `docs/PLAN.md` — read it before starting work. Add the
-real build / lint / test / single-test commands here once M0 (foundations) lands.
+The project is in the planning phase: there is no application code, build tooling or tests yet.
+Read `docs/plans/mvp.md` (scope, milestones M0–M5) and `docs/adr/` (decisions and why) before
+starting work. Add the real build / lint / test / single-test commands here once M0 lands.
+
+Local emulators for every external resource (Postgres on `localhost:55432`, Mailpit SMTP on
+`1025` with UI on `8025`) already work:
+
+```bash
+scripts/dev-services.sh up      # down | reset (drops the DB volume) | ps | logs [service]
+```
+
+When the app starts using a new external resource, add its emulator to
+`infra/docker/compose.dev.yaml` in the same change.
+
+## Repository layout
+
+Keep the root clean: only `README.md`, `LICENSE`, `CLAUDE.md` and dotfiles tools require there
+(ADR 0007). Source lives in `code/<part>/`, Docker/Compose files in `infra/docker/`, cloud
+reference deployments in `infra/aws|azure/`, helpers in `scripts/`. The pnpm workspace is rooted
+in `code/`. Docs: `docs/plans/` (what and when), `docs/specs/` (how, one per feature or
+contract), `docs/adr/` (why; immutable, supersede with a new ADR), `docs/issues/` (issue
+process). A change that reverses a recorded decision needs a new ADR; a new contract or
+behaviour needs a spec.
 
 ## Architecture (planned)
 
@@ -29,12 +49,12 @@ changed without a deploy of that app. One instance = one organisation; there are
 
 | Path | Part | Stack |
 |---|---|---|
-| `packages/sdk/` | Browser SDK loaded by a snippet on the customer's page | TypeScript, no runtime deps, Shadow DOM |
-| `packages/schema/` | JSON Schemas for experience content; source of TS types | JSON Schema |
-| `apps/studio/` | Web console: authoring, targeting, publish, analytics, settings | React + TS + Vite |
-| `apps/demo/` | Plain page that loads the SDK, used for manual testing | HTML |
-| `services/api/` | Management API (Studio) + SDK API + event ingestion; also serves built Studio and `/sdk.js` | FastAPI, SQLAlchemy 2, Alembic, Postgres |
-| `apps/builder-extension/` | Chrome extension element picker (phase 2) | TS, MV3 |
+| `code/sdk/` | Browser SDK loaded by a snippet on the customer's page | TypeScript, no runtime deps, Shadow DOM |
+| `code/shared/schema/` | JSON Schemas for experience content; source of TS types | JSON Schema |
+| `code/studio/` | Web console: authoring, targeting, publish, analytics, settings | React + TS + Vite |
+| `code/demo/` | Plain page that loads the SDK, used for manual testing | HTML |
+| `code/backend/` | Management API (Studio) + SDK API + event ingestion; also serves built Studio and `/sdk.js` | FastAPI, SQLAlchemy 2, Alembic, Postgres |
+| `code/builder-extension/` | Chrome extension element picker (phase 2) | TS, MV3 |
 
 Cross-cutting rules that span these parts:
 
@@ -42,10 +62,10 @@ Cross-cutting rules that span these parts:
   frequency, schedule and the account-wide cap server-side and returns qualifying experiences.
   The SDK then checks what only the browser can (URL match, target element present) and shows
   **at most one Flow per page view**, chosen by priority then weight. Manual triggers
-  (`Guide.show(id)`) bypass all targeting. Evaluation order is in `docs/PLAN.md` §6.
+  (`Guide.show(id)`) bypass all targeting. Evaluation order is in `docs/plans/mvp.md` §6.
 - **Published content is immutable.** Publishing snapshots the draft into `experience_versions`;
   the SDK only receives published versions, or a draft when a signed preview token is present.
-- **One content schema.** Flow/step shape is defined once in `packages/schema` and used for API
+- **One content schema.** Flow/step shape is defined once in `code/shared/schema` and used for API
   validation and for SDK/Studio types — change it there, not in each consumer.
 - **Deployment is one unit.** Self-hosters run the `api` container plus Postgres and configure it
   with env vars; the host app installs the SDK with `Guide.init({ apiUrl })` pointing at their
@@ -53,5 +73,5 @@ Cross-cutting rules that span these parts:
 - **SDK API security** = allowed-origins list (CORS + server check) plus optional identity
   verification (`userHash` = HMAC-SHA256 of the user id with a secret from Studio settings).
   The allowed-origins list is also how dev / qa / prod or several apps share one instance.
-  See `docs/PLAN.md` §3.1.
+  See `docs/plans/mvp.md` §3.1 and ADR 0002.
 - **Rich text** is sanitised on save (API) and again before render (SDK).

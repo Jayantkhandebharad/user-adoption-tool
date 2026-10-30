@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/Jayantkhandebharad/user-adoption-tool/security/advisories/new
+    about: Please report security problems privately, never in a public issue.
+  - name: How issues work here
+    url: https://github.com/Jayantkhandebharad/user-adoption-tool/blob/main/docs/issues/README.md
+    about: Labels, triage and what makes a good report.

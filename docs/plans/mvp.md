@@ -16,7 +16,10 @@ its own instance; one instance serves one organisation.
 | SDK | TypeScript, no runtime deps, rendered in Shadow DOM, target < 30 KB gzipped |
 | Builder | Chrome extension (MV3, TypeScript) — phase 2 |
 | Licence | Apache-2.0 (`LICENSE`) |
-| Distribution | Open source, self-hosted. Docker images + one `docker-compose.yml`; no hosted service from us |
+| Event storage | Postgres only: `events` partitioned by month, sized for ~100M rows per instance. No separate column store unless real users need one |
+| Platforms | Web only. Mobile SDKs are out of scope; keep the SDK API platform-neutral so one could be added later |
+| Studio sign-in | Email + password (Argon2id hashes, server-side sessions in an `HttpOnly` cookie); first admin created on first run, others invited. OIDC is phase 2 |
+| Distribution | Open source, self-hosted. one Docker image + Compose files in `infra/docker/`; no hosted service from us |
 | Tenancy | **Single-tenant.** One instance = one organisation. No accounts, no `account_id` columns, no per-tenant isolation |
 | SDK config | The host app gives the SDK the **URL of its backend**; no account id (see §3.1) |
 | Environments | One instance can serve many host URLs (dev / qa / prod / several apps) via an allowed-origins list; page targeting can filter by host |
@@ -25,15 +28,15 @@ its own instance; one instance serves one organisation.
 
 | Part | MVP | Phase 2+ |
 |---|---|---|
-| **SDK** (`packages/sdk`) | served by the backend at `/sdk.js` and published to npm; `init({ apiUrl })`, `identify`, `group`, `track`, `page`, `show`, `reset`, `debug`, `on/off`; SPA URL detection; Flow renderer | Pins, Checklists, Banners, NPS, Launchpad, Embeds renderers; localization |
-| **Studio** (`apps/studio`) | first-run admin setup, sign-in, experiences list, form-based Flow editor (paste a CSS selector), targeting, draft → publish → archive, preview link, users & events browser, experience analytics, settings (allowed origins, install snippet, team, identity-verification secret) | segments UI, themes editor, A/B, dashboards, key moments, campaigns |
-| **API** (`services/api`) | management API for Studio; SDK API (activity in, qualifying experiences out); event ingestion | public API, webhooks, integrations, workflows (email) |
-| **Builder** (`apps/builder-extension`) | — | element picker, step authoring over the live page, test mode |
+| **SDK** (`code/sdk`) | served by the backend at `/sdk.js` and published to npm; `init({ apiUrl })`, `identify`, `group`, `track`, `page`, `show`, `reset`, `debug`, `on/off`; SPA URL detection; Flow renderer | Pins, Checklists, Banners, NPS, Launchpad, Embeds renderers; localization |
+| **Studio** (`code/studio`) | first-run admin setup, sign-in, experiences list, form-based Flow editor (paste a CSS selector), targeting, draft → publish → archive, preview link, users & events browser, experience analytics, settings (allowed origins, install snippet, team, identity-verification secret) | segments UI, themes editor, A/B, dashboards, key moments, campaigns |
+| **API** (`code/backend`) | management API for Studio; SDK API (activity in, qualifying experiences out); event ingestion | public API, webhooks, integrations, workflows (email) |
+| **Builder** (`code/builder-extension`) | — | element picker, step authoring over the live page, test mode |
 
 ## 3. Architecture
 
 ```
-                         ┌──────────── your instance (one docker-compose) ────────────┐
+                         ┌──────────── your instance (one Compose stack) ─────────────┐
 host app ──<script>──► SDK ──HTTPS──► SDK API ─┐                                      │
                          │                     ├─► Postgres                           │
 Studio (React) ──────────┼──► Management API ──┘                                      │
@@ -122,7 +125,7 @@ Evaluated in this order:
 
 | # | Milestone | Done when |
 |---|---|---|
-| M0 | **Foundations** — repo layout, docker-compose (api serving Studio, postgres), env-var config, first-run admin setup, Studio sign-in, lint/format/test in CI, pre-commit check that blocks the reference product's name | `docker compose up` → create admin → empty Studio; CI green |
+| M0 | **Foundations** — Dockerfile + `compose.yaml` (api serving Studio, postgres), env-var config, first-run admin setup, Studio sign-in, lint/format/test in CI, pre-commit check that blocks the reference product's name | `docker compose up` → create admin → empty Studio; CI green |
 | M1 | **SDK core + ingestion** — `/sdk.js`, `init({ apiUrl })`, `identify/group/track/page/reset`, URL detection, allowed-origins check, identity verification, activity endpoint, users & events browser in Studio, `debug()` panel | a demo page's user and events appear in Studio; a request from an unlisted origin or with a bad `userHash` is rejected |
 | M2 | **Flow renderer** — schema, modal/slideout/tooltip/hotspot/redirect in Shadow DOM, buttons, multi-page flows, default theme | a hand-written Flow JSON renders on the demo page |
 | M3 | **Studio authoring** — experiences list, Flow editor, draft/publish/archive, versions, preview link | a Flow built in Studio shows on the demo page after Publish |
@@ -136,15 +139,10 @@ notes per release.
 
 ## 8. Repo layout
 
-```
-apps/studio/              React console
-apps/demo/                plain test page that loads the SDK
-packages/sdk/             browser SDK
-packages/schema/          JSON Schemas + generated TS types
-services/api/             FastAPI app, Alembic migrations, tests
-docker-compose.yml
-docs/
-```
+See [ADR 0007](../adr/0007-repository-layout.md). In short: source in `code/` (`backend`,
+`studio`, `sdk`, `shared`, `builder-extension`, `demo`), Docker image, Compose files and local
+emulators in `infra/docker/`, cloud reference deployments in `infra/aws/` and `infra/azure/`,
+helpers in `scripts/`, and docs in `docs/` (`plans/`, `specs/`, `adr/`, `issues/`).
 
 ## 9. Privacy and security
 
@@ -158,7 +156,4 @@ docs/
 
 ## 10. Open questions
 
-1. Studio auth: email + password to start, with optional OIDC (Google, Okta, Entra) later?
-2. Event volume to design for (Postgres partitions are fine to ~100M rows; beyond that a
-   column store)?
-3. Mobile SDKs: confirm out of scope.
+None at the moment.

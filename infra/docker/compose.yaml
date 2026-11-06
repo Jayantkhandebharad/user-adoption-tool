@@ -1,0 +1,40 @@
+# Self-host stack: the app and its database.
+#   docker compose -f infra/docker/compose.yaml up -d --build
+# Then open PUBLIC_URL (default http://localhost:8000) and create the first admin.
+name: guide
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+    image: guide:local
+    environment:
+      DATABASE_URL: postgresql+psycopg://guide:${POSTGRES_PASSWORD:-guide}@postgres:5432/guide
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8000}
+      SETUP_TOKEN: ${SETUP_TOKEN:-}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+    ports:
+      - "${GUIDE_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: guide
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-guide}
+      POSTGRES_DB: guide
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guide -d guide"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

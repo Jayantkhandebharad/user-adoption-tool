@@ -1,0 +1,10 @@
+# Used automatically for builds with -f infra/docker/Dockerfile (keeps the repo root clean).
+.git
+**/node_modules
+**/.venv
+**/dist
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.env

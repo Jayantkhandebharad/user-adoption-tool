@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  blocked-terms:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Files
+        run: python3 scripts/check-blocked-terms.py --all
+      - name: Commit messages
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$BASE" ] && ! echo "$BASE" | grep -qE '^0+$'; then
+            python3 scripts/check-blocked-terms.py --commits "$BASE..HEAD"
+          else
+            python3 scripts/check-blocked-terms.py --commits HEAD
+          fi
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: code/backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: guide
+          POSTGRES_PASSWORD: guide
+          POSTGRES_DB: guide
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U guide -d guide"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://guide:guide@localhost:5432/guide_test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: code/backend/uv.lock
+      - run: uv sync --frozen
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run mypy
+      - run: uv run pytest
+
+  studio:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: code
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: code/package-lock.json
+      - run: npm ci
+      - run: npx biome ci .
+      - run: npm run typecheck --workspace studio
+      - run: npm test --workspace studio
+      - run: npm run build --workspace studio
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build and start the self-host stack
+        run: docker compose -f infra/docker/compose.yaml up -d --build --wait
+      - name: Smoke test
+        run: |
+          curl -fsS http://localhost:8000/api/health
+          curl -fsS http://localhost:8000/ | grep -q '<div id="root">'
+          curl -fsS http://localhost:8000/api/setup/status | grep -q '"needs_setup":true'
+      - name: Logs on failure
+        if: failure()
+        run: docker compose -f infra/docker/compose.yaml logs

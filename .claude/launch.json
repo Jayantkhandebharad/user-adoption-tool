@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "--directory", "code/backend", "uvicorn", "app.main:create_app", "--factory", "--reload", "--port", "8001"],
+      "port": 8001
+    },
+    {
+      "name": "studio",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["GUIDE_API_URL=http://localhost:8001", "npm", "--prefix", "code", "run", "dev", "--workspace", "studio"],
+      "port": 5173
+    }
+  ]
+}

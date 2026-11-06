@@ -1,0 +1,18 @@
+{
+  "name": "guide-workspace",
+  "private": true,
+  "license": "Apache-2.0",
+  "workspaces": [
+    "studio"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "biome check .",
+    "format": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.4"
+  }
+}

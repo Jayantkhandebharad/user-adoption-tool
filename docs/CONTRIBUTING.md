@@ -38,15 +38,17 @@ The current roadmap is [`plans/mvp.md`](plans/mvp.md).
 
 ## Local development
 
-You need Docker. Local emulators for everything the app talks to (Postgres, an SMTP catcher)
-run from one Compose file:
+You need Docker, [uv](https://docs.astral.sh/uv/) and Node 22+.
 
 ```bash
-scripts/dev-services.sh up
+scripts/install-git-hooks.sh     # once per clone
+scripts/dev-services.sh up       # local emulators: Postgres, an SMTP catcher
 ```
 
-Toolchain setup and the commands to build, lint and test each part are in that part's README
-(`code/<part>/README.md`). They are being added during milestone M0.
+Then follow [`code/backend/README.md`](../code/backend/README.md) and
+[`code/studio/README.md`](../code/studio/README.md): each lists how to run, lint, type-check and
+test that part. To try the whole thing as a self-hoster would, see
+[`infra/docker/README.md`](../infra/docker/README.md).
 
 ## Making a change
 

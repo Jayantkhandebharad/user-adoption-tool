@@ -2,6 +2,8 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-30
+- **Amended:** 2026-10-30 — npm workspaces instead of pnpm: Node ships npm, while pnpm needs an
+  extra install now that recent Node versions no longer bundle corepack.
 
 ## Context
 
@@ -19,7 +21,7 @@ docs/      plans/, specs/, adr/, issues/, CONTRIBUTING, CODE_OF_CONDUCT, SECURIT
 ```
 
 The root keeps only `README.md`, `LICENSE`, `CLAUDE.md` and dotfiles that tools require
-there. The pnpm workspace is rooted in `code/`, not the repo root. Dockerfiles and Compose files
+there. The npm workspace is rooted in `code/`, not the repo root. Dockerfiles and Compose files
 live in `infra/docker/`. Every external resource the app uses has a local emulator in
 `infra/docker/compose.dev.yaml`.
 

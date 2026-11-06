@@ -45,8 +45,9 @@ Builder ext. (phase 2) ──┘                                                
 ```
 
 Studio and both APIs ship as one deployable: the API container also serves the built Studio
-and `/sdk.js`, so a self-hoster runs `api` + `postgres` and sets a handful of env vars
-(`DATABASE_URL`, `PUBLIC_URL`, `SECRET_KEY`, `ALLOWED_ORIGINS`).
+and `/sdk.js`, so a self-hoster runs `app` + `postgres` and sets a handful of env vars
+(`DATABASE_URL`, `PUBLIC_URL`, optional `SETUP_TOKEN`; full list in `infra/docker/README.md`).
+Allowed origins are instance settings stored in the database and edited in Studio.
 
 ### 3.1 Installing the SDK in a host app
 
